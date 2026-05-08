@@ -3,8 +3,6 @@ from telebot import types
 import yt_dlp
 import os
 import uuid
-import threading
-from flask import Flask
 
 # =========================
 # 🔐 الإعدادات
@@ -21,19 +19,6 @@ bot = telebot.TeleBot(TOKEN)
 
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
-
-# =========================
-# 🌐 Web Server (حل Render)
-# =========================
-
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Bot is running"
-
-def run_web():
-    app.run(host="0.0.0.0", port=10000)
 
 # =========================
 # 🔍 التحقق من الاشتراك
@@ -100,7 +85,7 @@ def check(c):
         bot.answer_callback_query(c.id, "❌ لم تشترك")
 
 # =========================
-# 🧠 التحميل الذكي
+# 🧠 التحميل الذكي (PRO)
 # =========================
 
 def download(url, chat_id, mode):
@@ -108,57 +93,93 @@ def download(url, chat_id, mode):
     uid = str(uuid.uuid4())
     base = f"{DOWNLOAD_DIR}/{uid}"
 
+    def run(opts):
+        with yt_dlp.YoutubeDL(opts) as ydl:
+            return ydl.extract_info(url, download=(mode != "image"))
+
     try:
 
+        # ================= VIDEO =================
         if mode == "video":
+
             opts = {
-                'format': 'bestvideo+bestaudio/best',
+                'format': 'best[ext=mp4]/best',
                 'outtmpl': base + ".mp4",
-                'merge_output_format': 'mp4',
                 'noplaylist': True,
-                'quiet': True
+                'quiet': True,
+                'merge_output_format': 'mp4',
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0'
+                }
             }
 
+            try:
+                run(opts)
+
+            except Exception:
+                # fallback قوي
+                opts['format'] = 'best'
+                opts['extractor_args'] = {
+                    'youtube': {
+                        'skip': ['dash', 'hls', 'translated_subs']
+                    }
+                }
+                run(opts)
+
+            file = base + ".mp4"
+
+            if os.path.exists(file):
+                with open(file, "rb") as f:
+                    bot.send_video(chat_id, f, supports_streaming=True)
+                os.remove(file)
+            else:
+                bot.send_message(chat_id, "❌ فشل تحميل الفيديو")
+
+        # ================= AUDIO =================
         elif mode == "audio":
+
             opts = {
                 'format': 'bestaudio/best',
                 'outtmpl': base,
                 'noplaylist': True,
                 'quiet': True,
-                'postprocessors': [{
-                    'key': 'FFmpegExtractAudio',
-                    'preferredcodec': 'mp3',
-                    'preferredquality': '192',
-                }]
+                'http_headers': {
+                    'User-Agent': 'Mozilla/5.0'
+                }
             }
 
-        else:
-            opts = {'quiet': True, 'skip_download': True}
+            try:
+                run(opts)
+            except Exception:
+                opts['format'] = 'bestaudio'
+                run(opts)
 
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            info = ydl.extract_info(url, download=(mode != "image"))
-
-        if mode == "video":
-            file = base + ".mp4"
-            if os.path.exists(file):
-                with open(file, "rb") as f:
-                    bot.send_video(chat_id, f, supports_streaming=True)
-                os.remove(file)
-
-        elif mode == "audio":
             file = base + ".mp3"
+
             if os.path.exists(file):
                 with open(file, "rb") as f:
                     bot.send_audio(chat_id, f)
                 os.remove(file)
+            else:
+                bot.send_message(chat_id, "❌ فشل تحميل الصوت")
 
-        elif mode == "image":
+        # ================= IMAGE =================
+        else:
+            opts = {'quiet': True, 'skip_download': True}
+
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=False)
+
             thumb = info.get("thumbnail")
+
             if thumb:
                 bot.send_photo(chat_id, thumb, caption="🖼 صورة الفيديو")
+            else:
+                bot.send_message(chat_id, "❌ لا توجد صورة")
 
     except Exception as e:
         bot.send_message(chat_id, f"❌ خطأ:\n{e}")
+        print("ERROR:", e)
 
 # =========================
 # 📥 استقبال الروابط
@@ -220,13 +241,13 @@ def callback(c):
         bot.send_message(c.message.chat.id, f"❌ خطأ:\n{e}")
 
 # =========================
-# 🚀 تشغيل البوت + السيرفر
+# 🚀 تشغيل
 # =========================
 
 print("🚀 Bot Pro Max Running...")
 
-threading.Thread(target=run_web).start()
-
 bot.infinity_polling(skip_pending=True)
+
+
 
 
