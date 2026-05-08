@@ -9,6 +9,10 @@ import uuid
 # =========================
 
 TOKEN = os.environ.get("TOKEN")
+
+if not TOKEN:
+    raise ValueError("TOKEN not found")
+
 CHANNEL = "@mr_downloader414"
 
 bot = telebot.TeleBot(TOKEN)
@@ -91,7 +95,7 @@ def download(url, chat_id, mode):
 
     try:
 
-        # 🎬 فيديو (أفضل جودة)
+        # 🎬 فيديو
         if mode == "video":
             opts = {
                 'format': 'bestvideo+bestaudio/best',
@@ -125,28 +129,37 @@ def download(url, chat_id, mode):
         # ================= VIDEO =================
         if mode == "video":
             file = base + ".mp4"
+
             if os.path.exists(file):
                 with open(file, "rb") as f:
                     bot.send_video(chat_id, f, supports_streaming=True)
+
                 os.remove(file)
+
             else:
                 bot.send_message(chat_id, "❌ فشل تحميل الفيديو")
 
         # ================= AUDIO =================
         elif mode == "audio":
             file = base + ".mp3"
+
             if os.path.exists(file):
                 with open(file, "rb") as f:
                     bot.send_audio(chat_id, f)
+
                 os.remove(file)
+
             else:
                 bot.send_message(chat_id, "❌ فشل تحميل الصوت")
 
         # ================= IMAGE =================
         elif mode == "image":
+
             thumb = info.get("thumbnail")
+
             if thumb:
                 bot.send_photo(chat_id, thumb, caption="🖼 صورة الفيديو")
+
             else:
                 bot.send_message(chat_id, "❌ لا توجد صورة")
 
@@ -192,21 +205,28 @@ def handle(m):
 def callback(c):
 
     try:
+
         data = c.data
 
         if data.startswith("video|"):
             url = data.split("|", 1)[1]
+
             bot.send_message(c.message.chat.id, "⏳ تحميل الفيديو...")
+
             download(url, c.message.chat.id, "video")
 
         elif data.startswith("audio|"):
             url = data.split("|", 1)[1]
+
             bot.send_message(c.message.chat.id, "⏳ تحميل الصوت...")
+
             download(url, c.message.chat.id, "audio")
 
         elif data.startswith("image|"):
             url = data.split("|", 1)[1]
+
             bot.send_message(c.message.chat.id, "⏳ استخراج الصورة...")
+
             download(url, c.message.chat.id, "image")
 
     except Exception as e:
