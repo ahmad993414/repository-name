@@ -5,6 +5,22 @@ import os
 import uuid
 
 # =========================
+# 🌐 Flask لـ Render
+# =========================
+
+from flask import Flask
+from threading import Thread
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is running!"
+
+def run_web():
+    app.run(host='0.0.0.0', port=10000)
+
+# =========================
 # 🔐 الإعدادات
 # =========================
 
@@ -36,6 +52,7 @@ def is_subscribed(user_id):
 # =========================
 
 def force_join(chat_id):
+
     kb = types.InlineKeyboardMarkup()
 
     kb.add(
@@ -52,7 +69,11 @@ def force_join(chat_id):
         )
     )
 
-    bot.send_message(chat_id, "🚫 لازم تشترك أولاً", reply_markup=kb)
+    bot.send_message(
+        chat_id,
+        "🚫 لازم تشترك أولاً",
+        reply_markup=kb
+    )
 
 # =========================
 # 🚀 START
@@ -72,20 +93,33 @@ def start(m):
     )
 
 # =========================
-# 🔘 التحقق
+# 🔘 تحقق الاشتراك
 # =========================
 
 @bot.callback_query_handler(func=lambda c: c.data == "check")
 def check(c):
 
     if is_subscribed(c.from_user.id):
-        bot.answer_callback_query(c.id, "✔ تم التحقق")
-        bot.send_message(c.message.chat.id, "🎯 أرسل الرابط الآن")
+
+        bot.answer_callback_query(
+            c.id,
+            "✔ تم التحقق"
+        )
+
+        bot.send_message(
+            c.message.chat.id,
+            "🎯 أرسل الرابط الآن"
+        )
+
     else:
-        bot.answer_callback_query(c.id, "❌ لم تشترك")
+
+        bot.answer_callback_query(
+            c.id,
+            "❌ لم تشترك"
+        )
 
 # =========================
-# 🧠 التحميل الذكي (PRO)
+# 🧠 التحميل الذكي الاحترافي
 # =========================
 
 def download(url, chat_id, mode):
@@ -95,11 +129,15 @@ def download(url, chat_id, mode):
 
     def run(opts):
         with yt_dlp.YoutubeDL(opts) as ydl:
-            return ydl.extract_info(url, download=(mode != "image"))
+            return ydl.extract_info(
+                url,
+                download=(mode != "image")
+            )
 
     try:
 
         # ================= VIDEO =================
+
         if mode == "video":
 
             opts = {
@@ -108,77 +146,135 @@ def download(url, chat_id, mode):
                 'noplaylist': True,
                 'quiet': True,
                 'merge_output_format': 'mp4',
+
                 'http_headers': {
                     'User-Agent': 'Mozilla/5.0'
                 }
             }
 
             try:
+
                 run(opts)
 
             except Exception:
-                # fallback قوي
+
+                # 🔥 fallback ضد الحظر
+
                 opts['format'] = 'best'
+
                 opts['extractor_args'] = {
                     'youtube': {
-                        'skip': ['dash', 'hls', 'translated_subs']
+                        'skip': [
+                            'dash',
+                            'hls',
+                            'translated_subs'
+                        ]
                     }
                 }
+
                 run(opts)
 
             file = base + ".mp4"
 
             if os.path.exists(file):
+
                 with open(file, "rb") as f:
-                    bot.send_video(chat_id, f, supports_streaming=True)
+                    bot.send_video(
+                        chat_id,
+                        f,
+                        supports_streaming=True
+                    )
+
                 os.remove(file)
+
             else:
-                bot.send_message(chat_id, "❌ فشل تحميل الفيديو")
+
+                bot.send_message(
+                    chat_id,
+                    "❌ فشل تحميل الفيديو"
+                )
 
         # ================= AUDIO =================
+
         elif mode == "audio":
 
             opts = {
                 'format': 'bestaudio/best',
-                'outtmpl': base,
+                'outtmpl': base + ".mp3",
                 'noplaylist': True,
                 'quiet': True,
+
                 'http_headers': {
                     'User-Agent': 'Mozilla/5.0'
                 }
             }
 
             try:
+
                 run(opts)
+
             except Exception:
+
                 opts['format'] = 'bestaudio'
+
                 run(opts)
 
             file = base + ".mp3"
 
             if os.path.exists(file):
+
                 with open(file, "rb") as f:
                     bot.send_audio(chat_id, f)
+
                 os.remove(file)
+
             else:
-                bot.send_message(chat_id, "❌ فشل تحميل الصوت")
+
+                bot.send_message(
+                    chat_id,
+                    "❌ فشل تحميل الصوت"
+                )
 
         # ================= IMAGE =================
-        else:
-            opts = {'quiet': True, 'skip_download': True}
+
+        elif mode == "image":
+
+            opts = {
+                'quiet': True,
+                'skip_download': True
+            }
 
             with yt_dlp.YoutubeDL(opts) as ydl:
-                info = ydl.extract_info(url, download=False)
+
+                info = ydl.extract_info(
+                    url,
+                    download=False
+                )
 
             thumb = info.get("thumbnail")
 
             if thumb:
-                bot.send_photo(chat_id, thumb, caption="🖼 صورة الفيديو")
+
+                bot.send_photo(
+                    chat_id,
+                    thumb,
+                    caption="🖼 صورة الفيديو"
+                )
+
             else:
-                bot.send_message(chat_id, "❌ لا توجد صورة")
+
+                bot.send_message(
+                    chat_id,
+                    "❌ لا توجد صورة"
+                )
 
     except Exception as e:
-        bot.send_message(chat_id, f"❌ خطأ:\n{e}")
+
+        bot.send_message(
+            chat_id,
+            f"❌ خطأ:\n{e}"
+        )
+
         print("ERROR:", e)
 
 # =========================
@@ -195,21 +291,40 @@ def handle(m):
     url = m.text.strip()
 
     if "http" not in url:
-        bot.send_message(m.chat.id, "📌 أرسل رابط صحيح")
+
+        bot.send_message(
+            m.chat.id,
+            "📌 أرسل رابط صحيح"
+        )
+
         return
 
     kb = types.InlineKeyboardMarkup()
 
     kb.add(
-        types.InlineKeyboardButton("🎬 فيديو", callback_data=f"video|{url}"),
-        types.InlineKeyboardButton("🎵 صوت", callback_data=f"audio|{url}")
+        types.InlineKeyboardButton(
+            "🎬 فيديو",
+            callback_data=f"video|{url}"
+        ),
+
+        types.InlineKeyboardButton(
+            "🎵 صوت",
+            callback_data=f"audio|{url}"
+        )
     )
 
     kb.add(
-        types.InlineKeyboardButton("🖼 صورة", callback_data=f"image|{url}")
+        types.InlineKeyboardButton(
+            "🖼 صورة",
+            callback_data=f"image|{url}"
+        )
     )
 
-    bot.send_message(m.chat.id, "🎯 اختر نوع التحميل:", reply_markup=kb)
+    bot.send_message(
+        m.chat.id,
+        "🎯 اختر نوع التحميل:",
+        reply_markup=kb
+    )
 
 # =========================
 # 🔘 الأزرار
@@ -222,31 +337,82 @@ def callback(c):
 
         data = c.data
 
+        # ================= VIDEO =================
+
         if data.startswith("video|"):
+
             url = data.split("|", 1)[1]
-            bot.send_message(c.message.chat.id, "⏳ تحميل الفيديو...")
-            download(url, c.message.chat.id, "video")
+
+            bot.send_message(
+                c.message.chat.id,
+                "⏳ تحميل الفيديو..."
+            )
+
+            download(
+                url,
+                c.message.chat.id,
+                "video"
+            )
+
+        # ================= AUDIO =================
 
         elif data.startswith("audio|"):
+
             url = data.split("|", 1)[1]
-            bot.send_message(c.message.chat.id, "⏳ تحميل الصوت...")
-            download(url, c.message.chat.id, "audio")
+
+            bot.send_message(
+                c.message.chat.id,
+                "⏳ تحميل الصوت..."
+            )
+
+            download(
+                url,
+                c.message.chat.id,
+                "audio"
+            )
+
+        # ================= IMAGE =================
 
         elif data.startswith("image|"):
+
             url = data.split("|", 1)[1]
-            bot.send_message(c.message.chat.id, "⏳ استخراج الصورة...")
-            download(url, c.message.chat.id, "image")
+
+            bot.send_message(
+                c.message.chat.id,
+                "⏳ استخراج الصورة..."
+            )
+
+            download(
+                url,
+                c.message.chat.id,
+                "image"
+            )
 
     except Exception as e:
-        bot.send_message(c.message.chat.id, f"❌ خطأ:\n{e}")
+
+        bot.send_message(
+            c.message.chat.id,
+            f"❌ خطأ:\n{e}"
+        )
 
 # =========================
-# 🚀 تشغيل
+# 🚀 تشغيل Flask
+# =========================
+
+t = Thread(target=run_web)
+t.start()
+
+# =========================
+# 🚀 تشغيل البوت
 # =========================
 
 print("🚀 Bot Pro Max Running...")
 
-bot.infinity_polling(skip_pending=True)
+while True:
+    try:
+        bot.infinity_polling(skip_pending=True)
+    except Exception as e:
+        print("Polling Error:", e)
 
 
 
