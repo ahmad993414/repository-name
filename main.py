@@ -3,6 +3,8 @@ from telebot import types
 import yt_dlp
 import os
 import uuid
+import threading
+from flask import Flask
 
 # =========================
 # 🔐 الإعدادات
@@ -19,6 +21,19 @@ bot = telebot.TeleBot(TOKEN)
 
 DOWNLOAD_DIR = "downloads"
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
+
+# =========================
+# 🌐 Web Server (حل Render)
+# =========================
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "Bot is running"
+
+def run_web():
+    app.run(host="0.0.0.0", port=10000)
 
 # =========================
 # 🔍 التحقق من الاشتراك
@@ -95,7 +110,6 @@ def download(url, chat_id, mode):
 
     try:
 
-        # 🎬 فيديو
         if mode == "video":
             opts = {
                 'format': 'bestvideo+bestaudio/best',
@@ -105,7 +119,6 @@ def download(url, chat_id, mode):
                 'quiet': True
             }
 
-        # 🎵 صوت
         elif mode == "audio":
             opts = {
                 'format': 'bestaudio/best',
@@ -119,53 +132,33 @@ def download(url, chat_id, mode):
                 }]
             }
 
-        # 🖼 صورة
         else:
             opts = {'quiet': True, 'skip_download': True}
 
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=(mode != "image"))
 
-        # ================= VIDEO =================
         if mode == "video":
             file = base + ".mp4"
-
             if os.path.exists(file):
                 with open(file, "rb") as f:
                     bot.send_video(chat_id, f, supports_streaming=True)
-
                 os.remove(file)
 
-            else:
-                bot.send_message(chat_id, "❌ فشل تحميل الفيديو")
-
-        # ================= AUDIO =================
         elif mode == "audio":
             file = base + ".mp3"
-
             if os.path.exists(file):
                 with open(file, "rb") as f:
                     bot.send_audio(chat_id, f)
-
                 os.remove(file)
 
-            else:
-                bot.send_message(chat_id, "❌ فشل تحميل الصوت")
-
-        # ================= IMAGE =================
         elif mode == "image":
-
             thumb = info.get("thumbnail")
-
             if thumb:
                 bot.send_photo(chat_id, thumb, caption="🖼 صورة الفيديو")
 
-            else:
-                bot.send_message(chat_id, "❌ لا توجد صورة")
-
     except Exception as e:
         bot.send_message(chat_id, f"❌ خطأ:\n{e}")
-        print("ERROR:", e)
 
 # =========================
 # 📥 استقبال الروابط
@@ -210,32 +203,30 @@ def callback(c):
 
         if data.startswith("video|"):
             url = data.split("|", 1)[1]
-
             bot.send_message(c.message.chat.id, "⏳ تحميل الفيديو...")
-
             download(url, c.message.chat.id, "video")
 
         elif data.startswith("audio|"):
             url = data.split("|", 1)[1]
-
             bot.send_message(c.message.chat.id, "⏳ تحميل الصوت...")
-
             download(url, c.message.chat.id, "audio")
 
         elif data.startswith("image|"):
             url = data.split("|", 1)[1]
-
             bot.send_message(c.message.chat.id, "⏳ استخراج الصورة...")
-
             download(url, c.message.chat.id, "image")
 
     except Exception as e:
         bot.send_message(c.message.chat.id, f"❌ خطأ:\n{e}")
 
 # =========================
-# 🚀 تشغيل
+# 🚀 تشغيل البوت + السيرفر
 # =========================
 
 print("🚀 Bot Pro Max Running...")
 
+threading.Thread(target=run_web).start()
+
 bot.infinity_polling(skip_pending=True)
+
+
