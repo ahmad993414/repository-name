@@ -1,4 +1,4 @@
-import telebot
+ import telebot
 from telebot import types
 import yt_dlp
 import os
@@ -88,7 +88,7 @@ def start(m):
 
     bot.send_message(
         m.chat.id,
-        "🔥 بوت برو ماكس جاهز\n\n"
+        "🔥 MR.DOWNLOADER جاهز\n\n"
         "📥 أرسل رابط (يوتيوب / تيك توك / أي فيديو)"
     )
 
@@ -141,14 +141,38 @@ def download(url, chat_id, mode):
         if mode == "video":
 
             opts = {
+
+                # 🔥 جودة الفيديو
                 'format': 'best[ext=mp4]/best',
+
+                # 🔥 مكان الحفظ
                 'outtmpl': base + ".mp4",
-                'noplaylist': True,
+
+                # 🔥 إعدادات عامة
                 'quiet': True,
+                'noplaylist': True,
                 'merge_output_format': 'mp4',
 
+                # 🔥 إعادة المحاولة
+                'retries': 10,
+                'fragment_retries': 10,
+                'extractor_retries': 10,
+
+                # 🔥 تجاوز بعض الحمايات
+                'nocheckcertificate': True,
+                'geo_bypass': True,
+
+                # 🔥 يقلل كشف البوت
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0'
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                    'Accept-Language': 'en-US,en;q=0.9'
+                },
+
+                # 🔥 أهم تعديل لليوتيوب
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['android']
+                    }
                 }
             }
 
@@ -158,12 +182,13 @@ def download(url, chat_id, mode):
 
             except Exception:
 
-                # 🔥 fallback ضد الحظر
+                # 🔥 fallback احتياطي
 
                 opts['format'] = 'best'
 
                 opts['extractor_args'] = {
                     'youtube': {
+                        'player_client': ['android'],
                         'skip': [
                             'dash',
                             'hls',
@@ -179,6 +204,7 @@ def download(url, chat_id, mode):
             if os.path.exists(file):
 
                 with open(file, "rb") as f:
+
                     bot.send_video(
                         chat_id,
                         f,
@@ -199,25 +225,33 @@ def download(url, chat_id, mode):
         elif mode == "audio":
 
             opts = {
+
                 'format': 'bestaudio/best',
+
                 'outtmpl': base + ".mp3",
-                'noplaylist': True,
+
                 'quiet': True,
+                'noplaylist': True,
+
+                'retries': 10,
+                'fragment_retries': 10,
+                'extractor_retries': 10,
+
+                'nocheckcertificate': True,
+                'geo_bypass': True,
 
                 'http_headers': {
                     'User-Agent': 'Mozilla/5.0'
+                },
+
+                'extractor_args': {
+                    'youtube': {
+                        'player_client': ['android']
+                    }
                 }
             }
 
-            try:
-
-                run(opts)
-
-            except Exception:
-
-                opts['format'] = 'bestaudio'
-
-                run(opts)
+            run(opts)
 
             file = base + ".mp3"
 
@@ -406,14 +440,10 @@ t.start()
 # 🚀 تشغيل البوت
 # =========================
 
-print("🚀 Bot Pro Max Running...")
+print("🚀 MR.DOWNLOADER Running...")
 
 while True:
     try:
         bot.infinity_polling(skip_pending=True)
     except Exception as e:
         print("Polling Error:", e)
-
-
-
-
