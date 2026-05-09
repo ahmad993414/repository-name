@@ -1,4 +1,4 @@
- import telebot
+import telebot
 from telebot import types
 import yt_dlp
 import os
@@ -11,7 +11,7 @@ import uuid
 from flask import Flask
 from threading import Thread
 
-app = Flask('')
+app = Flask(__name__)
 
 @app.route('/')
 def home():
@@ -41,9 +41,17 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 # =========================
 
 def is_subscribed(user_id):
+
     try:
+
         m = bot.get_chat_member(CHANNEL, user_id)
-        return m.status in ["member", "administrator", "creator"]
+
+        return m.status in [
+            "member",
+            "administrator",
+            "creator"
+        ]
+
     except:
         return False
 
@@ -83,13 +91,14 @@ def force_join(chat_id):
 def start(m):
 
     if not is_subscribed(m.from_user.id):
+
         force_join(m.chat.id)
+
         return
 
     bot.send_message(
         m.chat.id,
-        "🔥 MR.DOWNLOADER جاهز\n\n"
-        "📥 أرسل رابط (يوتيوب / تيك توك / أي فيديو)"
+        "🔥 MR.DOWNLOADER جاهز\n\n📥 أرسل رابط"
     )
 
 # =========================
@@ -119,20 +128,14 @@ def check(c):
         )
 
 # =========================
-# 🧠 التحميل الذكي الاحترافي
+# 🧠 التحميل الذكي
 # =========================
 
 def download(url, chat_id, mode):
 
     uid = str(uuid.uuid4())
-    base = f"{DOWNLOAD_DIR}/{uid}"
 
-    def run(opts):
-        with yt_dlp.YoutubeDL(opts) as ydl:
-            return ydl.extract_info(
-                url,
-                download=(mode != "image")
-            )
+    base = f"{DOWNLOAD_DIR}/{uid}"
 
     try:
 
@@ -142,33 +145,34 @@ def download(url, chat_id, mode):
 
             opts = {
 
-                # 🔥 جودة الفيديو
                 'format': 'best[ext=mp4]/best',
 
-                # 🔥 مكان الحفظ
                 'outtmpl': base + ".mp4",
 
-                # 🔥 إعدادات عامة
                 'quiet': True,
+
                 'noplaylist': True,
+
                 'merge_output_format': 'mp4',
 
-                # 🔥 إعادة المحاولة
                 'retries': 10,
+
                 'fragment_retries': 10,
+
                 'extractor_retries': 10,
 
-                # 🔥 تجاوز بعض الحمايات
                 'nocheckcertificate': True,
+
                 'geo_bypass': True,
 
-                # 🔥 يقلل كشف البوت
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-                    'Accept-Language': 'en-US,en;q=0.9'
+                    'User-Agent':
+                    'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+
+                    'Accept-Language':
+                    'en-US,en;q=0.9'
                 },
 
-                # 🔥 أهم تعديل لليوتيوب
                 'extractor_args': {
                     'youtube': {
                         'player_client': ['android']
@@ -176,28 +180,9 @@ def download(url, chat_id, mode):
                 }
             }
 
-            try:
+            with yt_dlp.YoutubeDL(opts) as ydl:
 
-                run(opts)
-
-            except Exception:
-
-                # 🔥 fallback احتياطي
-
-                opts['format'] = 'best'
-
-                opts['extractor_args'] = {
-                    'youtube': {
-                        'player_client': ['android'],
-                        'skip': [
-                            'dash',
-                            'hls',
-                            'translated_subs'
-                        ]
-                    }
-                }
-
-                run(opts)
+                ydl.extract_info(url, download=True)
 
             file = base + ".mp4"
 
@@ -231,13 +216,17 @@ def download(url, chat_id, mode):
                 'outtmpl': base + ".mp3",
 
                 'quiet': True,
+
                 'noplaylist': True,
 
                 'retries': 10,
+
                 'fragment_retries': 10,
+
                 'extractor_retries': 10,
 
                 'nocheckcertificate': True,
+
                 'geo_bypass': True,
 
                 'http_headers': {
@@ -251,13 +240,16 @@ def download(url, chat_id, mode):
                 }
             }
 
-            run(opts)
+            with yt_dlp.YoutubeDL(opts) as ydl:
+
+                ydl.extract_info(url, download=True)
 
             file = base + ".mp3"
 
             if os.path.exists(file):
 
                 with open(file, "rb") as f:
+
                     bot.send_audio(chat_id, f)
 
                 os.remove(file)
@@ -319,7 +311,9 @@ def download(url, chat_id, mode):
 def handle(m):
 
     if not is_subscribed(m.from_user.id):
+
         force_join(m.chat.id)
+
         return
 
     url = m.text.strip()
@@ -434,6 +428,7 @@ def callback(c):
 # =========================
 
 t = Thread(target=run_web)
+
 t.start()
 
 # =========================
@@ -443,7 +438,13 @@ t.start()
 print("🚀 MR.DOWNLOADER Running...")
 
 while True:
+
     try:
-        bot.infinity_polling(skip_pending=True)
+
+        bot.infinity_polling(
+            skip_pending=True
+        )
+
     except Exception as e:
+
         print("Polling Error:", e)
