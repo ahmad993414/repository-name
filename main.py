@@ -15,7 +15,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Bot is running!"
+    return "MR.DOWNLOADER is running!"
 
 def run_web():
     app.run(host='0.0.0.0', port=10000)
@@ -34,6 +34,7 @@ CHANNEL = "@mr_downloader414"
 bot = telebot.TeleBot(TOKEN)
 
 DOWNLOAD_DIR = "downloads"
+
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 # =========================
@@ -44,7 +45,10 @@ def is_subscribed(user_id):
 
     try:
 
-        m = bot.get_chat_member(CHANNEL, user_id)
+        m = bot.get_chat_member(
+            CHANNEL,
+            user_id
+        )
 
         return m.status in [
             "member",
@@ -53,6 +57,7 @@ def is_subscribed(user_id):
         ]
 
     except:
+
         return False
 
 # =========================
@@ -98,7 +103,7 @@ def start(m):
 
     bot.send_message(
         m.chat.id,
-        "🔥 MR.DOWNLOADER جاهز\n\n📥 أرسل رابط"
+        "🔥 MR.DOWNLOADER جاهز\n\n📥 أرسل رابط الفيديو"
     )
 
 # =========================
@@ -145,7 +150,7 @@ def download(url, chat_id, mode):
 
             opts = {
 
-                'format': 'best[ext=mp4]/best',
+                'format': 'bv*+ba/b',
 
                 'outtmpl': base + ".mp4",
 
@@ -155,17 +160,18 @@ def download(url, chat_id, mode):
 
                 'merge_output_format': 'mp4',
 
-                'retries': 10,
-
-                'fragment_retries': 10,
-
-                'extractor_retries': 10,
-
                 'nocheckcertificate': True,
 
                 'geo_bypass': True,
 
+                'retries': 15,
+
+                'fragment_retries': 15,
+
+                'extractor_retries': 15,
+
                 'http_headers': {
+
                     'User-Agent':
                     'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
 
@@ -174,15 +180,23 @@ def download(url, chat_id, mode):
                 },
 
                 'extractor_args': {
+
                     'youtube': {
-                        'player_client': ['android']
+
+                        'player_client': [
+                            'web',
+                            'android'
+                        ]
                     }
                 }
             }
 
             with yt_dlp.YoutubeDL(opts) as ydl:
 
-                ydl.extract_info(url, download=True)
+                ydl.extract_info(
+                    url,
+                    download=True
+                )
 
             file = base + ".mp4"
 
@@ -219,30 +233,40 @@ def download(url, chat_id, mode):
 
                 'noplaylist': True,
 
-                'retries': 10,
-
-                'fragment_retries': 10,
-
-                'extractor_retries': 10,
-
                 'nocheckcertificate': True,
 
                 'geo_bypass': True,
 
+                'retries': 15,
+
+                'fragment_retries': 15,
+
+                'extractor_retries': 15,
+
                 'http_headers': {
-                    'User-Agent': 'Mozilla/5.0'
+
+                    'User-Agent':
+                    'Mozilla/5.0'
                 },
 
                 'extractor_args': {
+
                     'youtube': {
-                        'player_client': ['android']
+
+                        'player_client': [
+                            'web',
+                            'android'
+                        ]
                     }
                 }
             }
 
             with yt_dlp.YoutubeDL(opts) as ydl:
 
-                ydl.extract_info(url, download=True)
+                ydl.extract_info(
+                    url,
+                    download=True
+                )
 
             file = base + ".mp3"
 
@@ -250,7 +274,10 @@ def download(url, chat_id, mode):
 
                 with open(file, "rb") as f:
 
-                    bot.send_audio(chat_id, f)
+                    bot.send_audio(
+                        chat_id,
+                        f
+                    )
 
                 os.remove(file)
 
@@ -266,7 +293,9 @@ def download(url, chat_id, mode):
         elif mode == "image":
 
             opts = {
+
                 'quiet': True,
+
                 'skip_download': True
             }
 
@@ -296,12 +325,12 @@ def download(url, chat_id, mode):
 
     except Exception as e:
 
+        print("ERROR:", e)
+
         bot.send_message(
             chat_id,
             f"❌ خطأ:\n{e}"
         )
-
-        print("ERROR:", e)
 
 # =========================
 # 📥 استقبال الروابط
@@ -330,6 +359,7 @@ def handle(m):
     kb = types.InlineKeyboardMarkup()
 
     kb.add(
+
         types.InlineKeyboardButton(
             "🎬 فيديو",
             callback_data=f"video|{url}"
@@ -342,6 +372,7 @@ def handle(m):
     )
 
     kb.add(
+
         types.InlineKeyboardButton(
             "🖼 صورة",
             callback_data=f"image|{url}"
@@ -417,6 +448,8 @@ def callback(c):
             )
 
     except Exception as e:
+
+        print("CALLBACK ERROR:", e)
 
         bot.send_message(
             c.message.chat.id,
