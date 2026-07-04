@@ -1,4 +1,2 @@
-pyTelegramBotAPI
-yt-dlp==2025.4.30
-flask
+aiogram
 requests
